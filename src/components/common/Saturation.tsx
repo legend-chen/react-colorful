@@ -1,5 +1,5 @@
 import React from "react";
-import { Interactive, Interaction } from "./Interactive";
+import { Interactive, Interaction, WheelInteraction } from "./Interactive";
 import { Pointer } from "./Pointer";
 import { HsvaColor } from "../../types";
 import { hsvaToHslString } from "../../utils/convert";
@@ -9,10 +9,31 @@ import { round } from "../../utils/round";
 interface Props {
   hsva: HsvaColor;
   onChange: (newColor: { s: number; v: number }) => void;
+  onHueChange?: (newHue: { h: number }) => void;
+  onAlphaChange?: (newAlpha: { a: number }) => void;
 }
 
-const SaturationBase = ({ hsva, onChange }: Props) => {
+const SaturationBase = ({ hsva, onChange, onHueChange, onAlphaChange }: Props) => {
+  const handleWheel = (event: WheelInteraction) => {
+    const delta = event.delta;
+    const altKey = event.altKey;
+    const i = -delta.x + delta.y;
+
+    if (altKey) {
+      onAlphaChange &&
+        onAlphaChange({
+          a: clamp(hsva.a + i / 1e3, 0, 1),
+        });
+    } else {
+      onHueChange &&
+        onHueChange({
+          h: clamp(hsva.h + i, 0, 360),
+        });
+    }
+  };
+
   const handleMove = (interaction: Interaction) => {
+    console.log(interaction.left * 100, 100 - interaction.top * 100, hsva);
     onChange({
       s: interaction.left * 100,
       v: 100 - interaction.top * 100,
@@ -36,6 +57,7 @@ const SaturationBase = ({ hsva, onChange }: Props) => {
       <Interactive
         onMove={handleMove}
         onKey={handleKey}
+        onWheel={handleWheel}
         aria-label="Color"
         aria-valuetext={`Saturation ${round(hsva.s)}%, Brightness ${round(hsva.v)}%`}
       >

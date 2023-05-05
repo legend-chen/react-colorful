@@ -8,6 +8,12 @@ export interface Interaction {
   top: number;
 }
 
+export type WheelInteraction = {
+  delta: { x: number; y: number };
+  altKey?: boolean;
+  ctrlKey?: boolean;
+};
+
 // Check if an event was triggered by touch
 const isTouch = (event: MouseEvent | TouchEvent): event is TouchEvent => "touches" in event;
 
@@ -57,13 +63,15 @@ const isInvalid = (event: MouseEvent | TouchEvent, hasTouch: boolean): boolean =
 interface Props {
   onMove: (interaction: Interaction) => void;
   onKey: (offset: Interaction) => void;
+  onWheel?: (event: WheelInteraction) => void;
   children: React.ReactNode;
 }
 
-const InteractiveBase = ({ onMove, onKey, ...rest }: Props) => {
+const InteractiveBase = ({ onMove, onKey, onWheel, ...rest }: Props) => {
   const container = useRef<HTMLDivElement>(null);
   const onMoveCallback = useEventCallback<Interaction>(onMove);
   const onKeyCallback = useEventCallback<Interaction>(onKey);
+  const onWheelCallback = useEventCallback<WheelInteraction>(onWheel);
   const touchId = useRef<null | number>(null);
   const hasTouch = useRef(false);
 
@@ -128,7 +136,6 @@ const InteractiveBase = ({ onMove, onKey, ...rest }: Props) => {
       const touch = hasTouch.current;
       const el = container.current;
       const parentWindow = getParentWindow(el);
-
       // Add or remove additional pointer event listeners
       const toggleEvent = state ? parentWindow.addEventListener : parentWindow.removeEventListener;
       toggleEvent(touch ? "touchmove" : "mousemove", handleMove);
@@ -137,6 +144,26 @@ const InteractiveBase = ({ onMove, onKey, ...rest }: Props) => {
 
     return [handleMoveStart, handleKeyDown, toggleDocumentEvents];
   }, [onKeyCallback, onMoveCallback]);
+
+  useEffect(() => {
+    function handleWheel(event: WheelEvent) {
+      event.preventDefault();
+      console.log("wheel");
+      onWheelCallback({
+        delta: { x: event.deltaX, y: event.deltaY },
+        altKey: event.altKey,
+        ctrlKey: event.ctrlKey,
+      });
+    }
+
+    const el = container.current;
+    if (el) {
+      el.addEventListener("wheel", handleWheel, { passive: false });
+      return () => {
+        el.removeEventListener("wheel", handleWheel);
+      };
+    }
+  }, [onWheelCallback]);
 
   // Remove window event listeners before unmounting
   useEffect(() => toggleDocumentEvents, [toggleDocumentEvents]);

@@ -26,9 +26,10 @@ export const ColorPicker = <T extends AnyColor>({
 
   const nodeClassName = formatClassName(["react-colorful", className]);
 
+
   return (
     <div {...rest} ref={nodeRef} className={nodeClassName}>
-      <Saturation hsva={hsva} onChange={updateHsva} />
+      <Saturation hsva={hsva} onChange={updateHsva} onHueChange={updateHsva} />
       <Hue hue={hsva.h} onChange={updateHsva} className="react-colorful__last-control" />
     </div>
   );
